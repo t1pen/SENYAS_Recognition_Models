@@ -39,7 +39,7 @@ while cap.isOpened():
     result = hands.process(img_rgb)
     
     if result.multi_hand_landmarks and capturing and count < max_samples:
-        filename = os.path.join(dataset_path, labels[current_label_index], f"{400+count}.jpg")
+        filename = os.path.join(dataset_path, labels[current_label_index], f"{1200+count}.jpg")
         cv2.imwrite(filename, roi)  # Save image without overlay
         count += 1
         if count >= max_samples:
