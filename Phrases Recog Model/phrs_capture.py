@@ -1,21 +1,23 @@
 import cv2
 import mediapipe as mp
 import os
-import json
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import numpy as np
 
 # Initialize MediaPipe Solutions
 mp_hands = mp.solutions.hands
-mp_face_mesh = mp.solutions.face_mesh
 mp_pose = mp.solutions.pose
 
+drawing_spec = mp.solutions.drawing_utils.DrawingSpec(thickness=1, circle_radius=1, color=(0, 255, 0))
+
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.5)
-face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5)
 pose = mp_pose.Pose(min_detection_confidence=0.5)
 
 # Define actions
 ACTIONS = ["hello", "thanks", "iloveyou", "goodbye", "sorry"]
 DATA_DIR = "action_sequences"
-max_sequences_per_action = 200  # Maximum number of sequences per action
+max_sequences_per_action = 20  # Maximum number of sequences per action
+frames_per_sequence = 50  # Number of frames per sequence
 
 # Create directories for actions
 for action in ACTIONS:
@@ -42,40 +44,39 @@ while cap.isOpened():
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     
     hand_result = hands.process(rgb_frame)
-    face_result = face_mesh.process(rgb_frame)
     pose_result = pose.process(rgb_frame)
 
+    # Define total landmark counts
+    HAND_LANDMARKS = 21  # MediaPipe Hands has 21 landmarks
+    POSE_LANDMARKS = 33  # MediaPipe Pose has 33 landmarks
+
+    # Initialize keypoints with zero-filled placeholders
     keypoints = {
-        "hands": [],
-        "face": [],
-        "pose": []
+        "hands": np.zeros((HAND_LANDMARKS, 3)),
+        "pose": np.zeros((POSE_LANDMARKS, 3))
     }
 
     # Extract hand landmarks
     if hand_result.multi_hand_landmarks:
         for hand_landmarks in hand_result.multi_hand_landmarks:
-            keypoints["hands"].append([(lm.x, lm.y, lm.z) for lm in hand_landmarks.landmark])
-
-    # Extract face landmarks
-    if face_result.multi_face_landmarks:
-        for face_landmarks in face_result.multi_face_landmarks:
-            keypoints["face"] = [(lm.x, lm.y, lm.z) for lm in face_landmarks.landmark]
+            keypoints["hands"] = np.array([(lm.x, lm.y, lm.z) for lm in hand_landmarks.landmark])
+            mp.solutions.drawing_utils.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
     # Extract pose landmarks
     if pose_result.pose_landmarks:
-        keypoints["pose"] = [(lm.x, lm.y, lm.z) for lm in pose_result.pose_landmarks.landmark]
+        keypoints["pose"] = np.array([(lm.x, lm.y, lm.z) for lm in pose_result.pose_landmarks.landmark])
+        mp.solutions.drawing_utils.draw_landmarks(frame, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-    # Start recording only if a hand is detected
-    if recording and keypoints["hands"]:
+    # Start recording regardless of missing keypoints
+    if recording:
         frame_sequence.append(keypoints)
 
-        print(f"Captured {len(frame_sequence)}/{max_sequences_per_action} frames for {ACTIONS[action_index]}")
+        print(f"Captured {len(frame_sequence)}/{frames_per_sequence} frames for {ACTIONS[action_index]}")
 
         # Stop recording after reaching max frames per sequence
-        if len(frame_sequence) >= max_sequences_per_action:
-            sequence_path = os.path.join(DATA_DIR, ACTIONS[action_index], f"sequence_{sequence_count}.json")
-            with open(sequence_path, "w") as f:
-                json.dump(frame_sequence, f)
+        if len(frame_sequence) >= frames_per_sequence:
+            sequence_path = os.path.join(DATA_DIR, ACTIONS[action_index], f"sequence_{sequence_count}.npy")
+            np.save(sequence_path, np.array(frame_sequence, dtype=object))
 
             print(f"Saved sequence {sequence_count} for {ACTIONS[action_index]}")
             sequence_count += 1
