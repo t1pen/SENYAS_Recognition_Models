@@ -75,7 +75,7 @@ while cap.isOpened():
 
         # Stop recording after reaching max frames per sequence
         if len(frame_sequence) >= frames_per_sequence:
-            sequence_path = os.path.join(DATA_DIR, ACTIONS[action_index], f"sequence_{sequence_count}.npy")
+            sequence_path = os.path.join(DATA_DIR, ACTIONS[action_index], f"sequence_{80+sequence_count}.npy")
             np.save(sequence_path, np.array(frame_sequence, dtype=object))
 
             print(f"Saved sequence {sequence_count} for {ACTIONS[action_index]}")
