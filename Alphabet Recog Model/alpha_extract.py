@@ -11,7 +11,7 @@ hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_co
 
 # Define dataset directory
 dataset_dir = "Alphabet_data"
-output_pkl = "landmarks_dataset.pkl"
+output_pkl = "landmarks_dataset_v2.pkl"
 
 # Prepare dataset storage
 data = []

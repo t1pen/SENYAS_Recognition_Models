@@ -7,12 +7,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 # Load dataset from corrected pickle file
-pickle_file = "landmarks_dataset.pkl"
+pickle_file = "landmarks_dataset_v2.pkl"
 with open(pickle_file, "rb") as f:
     data = pickle.load(f)
 
-X = np.array(data["landmarks"])  # Landmark coordinates
-y = np.array(data["labels"])  # Labels
+print(type(data))  # Check if it's a dictionary or something else
+print(data.keys())  # Print the available keys
+
+# Extract landmark columns (all columns except 'Label')
+landmark_columns = [col for col in data.columns if col != "Label"]
+X = data[landmark_columns].to_numpy()  # Convert to NumPy array
+
+# Extract labels
+y = np.array(data["Label"])  # Assuming 'Label' is the correct column name
 
 # Encode labels
 label_encoder = LabelEncoder()
@@ -47,10 +54,10 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 model.fit(X_train, y_train, epochs=30, batch_size=32, validation_data=(X_test, y_test))
 
 # Save model
-model.save("asl_mlp_model.h5")
+model.save("asl_mlp_model_v2.h5")
 
 # Save label encoder to pickle
-with open("label_encoder.pkl", "wb") as f:
+with open("label_encoder_v2.pkl", "wb") as f:
     pickle.dump(label_encoder, f)
 
 print("Model training complete and saved as asl_mlp_model.h5")

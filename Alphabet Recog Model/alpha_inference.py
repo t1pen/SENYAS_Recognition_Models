@@ -2,11 +2,15 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import load_model
 import pickle
 
-# Load trained model
-model = load_model("asl_mlp_model.h5")
+# Load TensorFlow Lite model
+interpreter = tf.lite.Interpreter(model_path="asl_mlp_model.tflite")
+interpreter.allocate_tensors()
+
+# Get input and output tensor details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
 # Load label encoder from pickle
 with open("label_encoder.pkl", "rb") as f:
@@ -43,13 +47,17 @@ while cap.isOpened():
                 landmarks.extend([lm.x, lm.y])
             
             # Convert to NumPy array
-            landmarks = np.array(landmarks).flatten().reshape(1, -1)  # Shape (1, 42)
+            landmarks = np.array(landmarks, dtype=np.float32).reshape(1, -1)  # Shape (1, 42)
             
             # Normalize landmarks (same as during training)
-            landmarks = landmarks.astype('float32') / np.max(landmarks)
+            landmarks = landmarks / np.max(landmarks)
 
-            # Predict ASL letter
-            prediction = model.predict(landmarks)
+            # Run inference
+            interpreter.set_tensor(input_details[0]['index'], landmarks)
+            interpreter.invoke()
+            prediction = interpreter.get_tensor(output_details[0]['index'])
+
+            # Get predicted label
             predicted_label = label_encoder.inverse_transform([np.argmax(prediction)])[0]
             
             # Display prediction
