@@ -14,7 +14,7 @@ hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.5)
 pose = mp_pose.Pose(min_detection_confidence=0.5)
 
 # Define actions
-ACTIONS = ["hello", "thanks", "iloveyou", "goodbye", "sorry"]
+ACTIONS = ["hello", "thanks", "iloveyou", "sorry"]
 DATA_DIR = "action_sequences"
 max_sequences_per_action = 20  # Maximum number of sequences per action
 frames_per_sequence = 30  # Number of frames per sequence
