@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import os
 
-dataset_path = "dataset/"  # Path to store images
+dataset_path = "dataset_2/"  # Path to store images
 labels = [str(i) for i in range(10)]  # Labels from 0-9
 
 # Ensure dataset directory and subdirectories exist

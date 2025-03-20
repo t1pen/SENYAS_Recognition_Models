@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import os
 
-dataset_path = "dataset/"  # Path to store images
+dataset_path = "dataset_2/"  # Path to store images
 labels = [str(i) for i in range(10)]  # Labels from 0-9
 
 # Ensure dataset directory and subdirectories exist
@@ -39,7 +39,7 @@ while cap.isOpened():
     result = hands.process(img_rgb)
     
     if result.multi_hand_landmarks and capturing and count < max_samples:
-        filename = os.path.join(dataset_path, labels[current_label_index], f"{1000+count}.jpg")
+        filename = os.path.join(dataset_path, labels[current_label_index], f"{200+count}.jpg")
         cv2.imwrite(filename, roi)  # Save image without overlay
         count += 1
         if count >= max_samples:
