@@ -3,7 +3,7 @@ import os
 import string
 
 # Define the main dataset folder
-dataset_dir = "Alphabet_data"
+dataset_dir = "Alphabet_data_2"
 os.makedirs(dataset_dir, exist_ok=True)
 
 # Define alphabet list
@@ -48,7 +48,7 @@ while cap.isOpened():
     if capture and frame_count < frames_per_letter:
         letter_dir = os.path.join(dataset_dir, current_letter)
         os.makedirs(letter_dir, exist_ok=True)
-        file_path = os.path.join(letter_dir, f"{800+frame_count:04d}.jpg")
+        file_path = os.path.join(letter_dir, f"{800+frame_count:03d}.jpg")
         cv2.imwrite(file_path, roi)
         frame_count += 1
     

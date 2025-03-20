@@ -3,7 +3,7 @@ import os
 import string
 
 # Define the main dataset folder
-dataset_dir = "Alphabet_data"
+dataset_dir = "Alphabet_data_2"
 os.makedirs(dataset_dir, exist_ok=True)
 
 # Define alphabet list
