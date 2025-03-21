@@ -10,7 +10,7 @@ mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_confidence=0.5)
 
 # Define dataset directory
-dataset_dir = "Alphabet_data"
+dataset_dir = "Alphabet_data_2"
 output_pkl = "landmarks_dataset_v2.pkl"
 
 # Prepare dataset storage
