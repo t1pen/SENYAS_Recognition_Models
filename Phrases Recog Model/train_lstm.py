@@ -22,7 +22,7 @@ for action_index, action in enumerate(ACTIONS):
         npy_path = os.path.join(action_path, npy_file)
         sequence = np.load(npy_path, allow_pickle=True)  # Load the .npy file
 
-        # Pad or truncate the sequence to SEQUENCE_LENGTH
+        # Ensure the sequence has a consistent shape
         if len(sequence) < SEQUENCE_LENGTH:
             # Pad with zeros if the sequence is too short
             padding = np.zeros((SEQUENCE_LENGTH - len(sequence), sequence[0].shape[0]))
@@ -42,6 +42,9 @@ if len(X) == 0:
 # Convert X and y to numpy arrays
 X = np.array(X)
 y = to_categorical(y, num_classes=len(ACTIONS))  # One-hot encode labels
+
+# Debug: Print the shape of X
+print(f"Shape of X: {X.shape}")  # Should be (num_samples, SEQUENCE_LENGTH, feature_dim)
 
 # Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
