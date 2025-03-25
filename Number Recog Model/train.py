@@ -7,8 +7,21 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score
 
 # Load dataset
-features_csv = "features.csv"
-df = pd.read_csv(features_csv)
+features_pkl = "features_v2.pkl"
+df = pd.read_pickle(features_pkl)  # Read the .pkl file
+
+# Debug: Inspect the loaded object
+print(f"Loaded object type: {type(df)}")
+if isinstance(df, list):
+    print(f"List length: {len(df)}")
+    print(f"First element type: {type(df[0])}")
+    if isinstance(df[0], tuple):
+        print(f"Tuple content: {df[0]}")
+        df = df[0][0]  # Extract the DataFrame if it's nested in the tuple
+
+# Verify that df is a DataFrame
+if not isinstance(df, pd.DataFrame):
+    raise ValueError(f"The extracted object is not a DataFrame. It is of type {type(df)}.")
 
 # Prepare data
 X = df.iloc[:, 1:].values  # Landmark features
@@ -49,7 +62,7 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 
 # Save TensorFlow Lite model
-with open("asl_number_classifier.tflite", "wb") as f:
+with open("asl_number_classifier_v2.tflite", "wb") as f:
     f.write(tflite_model)
 
-print("Model training complete. TensorFlow Lite model saved as 'asl_number_classifier.tflite'")
+print("Model training complete. TensorFlow Lite model saved as 'asl_number_classifier_v2.tflite'")

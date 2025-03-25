@@ -9,7 +9,7 @@ mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
 
 # Dataset directory (expects subfolders named 0-9 with images inside)
-DATA_DIR = './dataset'
+DATA_DIR = './dataset_2'
 
 data = []
 labels = []
@@ -52,7 +52,7 @@ for label in os.listdir(DATA_DIR):
                 labels.append(int(label))  # Convert label to integer
 
 # Save extracted features
-with open('features.pkl', 'wb') as f:
+with open('features_v2.pkl', 'wb') as f:
     pickle.dump((data, labels), f)
 
-print("Feature extraction complete. Data saved as features.pkl")
+print("Feature extraction complete. Data saved as features_v2.pkl")
