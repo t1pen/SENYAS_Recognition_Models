@@ -4,7 +4,7 @@ import tensorflow.lite as tflite
 import mediapipe as mp
 
 # Load the TFLite model
-interpreter = tflite.Interpreter(model_path="asl_number_classifier.tflite")
+interpreter = tflite.Interpreter(model_path="asl_number_classifier_v2.tflite")
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -18,7 +18,7 @@ mp_drawing = mp.solutions.drawing_utils
 labels = [str(i) for i in range(10)]
 
 # Start webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -35,21 +35,17 @@ while cap.isOpened():
     if result.multi_hand_landmarks:
         for hand_landmarks in result.multi_hand_landmarks:
             landmarks = []
-            x_min, y_min = w, h
-            x_max, y_max = 0, 0
             
+            # Extract only x and y coordinates (exclude z)
             for lm in hand_landmarks.landmark:
-                x, y = int(lm.x * w), int(lm.y * h)
-                landmarks.extend([lm.x, lm.y, lm.z])
-                
-                # Update bounding box
-                # x_min = min(x_min, x)
-                # y_min = min(y_min, y)
-                # x_max = max(x_max, x)
-                # y_max = max(y_max, y)
+                landmarks.extend([lm.x, lm.y])
             
-            # Convert landmarks to NumPy array and reshape
+            # Ensure the input data matches the expected shape
             input_data = np.array(landmarks, dtype=np.float32).reshape(1, -1)
+            
+            if input_data.shape[1] != input_details[0]['shape'][1]:
+                print(f"Skipping frame: Expected input shape {input_details[0]['shape'][1]}, but got {input_data.shape[1]}")
+                continue
             
             # Perform inference
             interpreter.set_tensor(input_details[0]['index'], input_data)
@@ -60,9 +56,6 @@ while cap.isOpened():
             # Display prediction
             cv2.putText(frame, f"Prediction: {labels[prediction]}", (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-            
-            # Draw bounding box
-            # cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
             
             # Draw landmarks
             mp_drawing.draw_landmarks(roi, hand_landmarks, mp_hands.HAND_CONNECTIONS)

@@ -3,6 +3,7 @@ import pickle
 import mediapipe as mp
 import cv2
 import numpy as np
+import pandas as pd
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -19,6 +20,8 @@ for label in os.listdir(DATA_DIR):
     label_path = os.path.join(DATA_DIR, label)
     if not os.path.isdir(label_path):
         continue
+    
+    print(f"Processing folder: {label}")  # Feedback for folder processing
     
     for img_name in os.listdir(label_path):
         img_path = os.path.join(label_path, img_name)
@@ -50,9 +53,15 @@ for label in os.listdir(DATA_DIR):
                 
                 data.append(data_aux)
                 labels.append(int(label))  # Convert label to integer
+    
+    print(f"Completed folder: {label}")  # Feedback for folder completion
 
-# Save extracted features
+# Convert to DataFrame
+df = pd.DataFrame(data)
+df['label'] = labels
+
+# Save extracted features as a DataFrame
 with open('features_v2.pkl', 'wb') as f:
-    pickle.dump((data, labels), f)
+    pickle.dump(df, f)
 
 print("Feature extraction complete. Data saved as features_v2.pkl")

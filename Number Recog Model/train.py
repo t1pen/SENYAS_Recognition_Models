@@ -8,24 +8,15 @@ from sklearn.metrics import accuracy_score
 
 # Load dataset
 features_pkl = "features_v2.pkl"
-df = pd.read_pickle(features_pkl)  # Read the .pkl file
+df = pd.read_pickle(features_pkl)  # Read the .pkl file directly as a DataFrame
 
-# Debug: Inspect the loaded object
-print(f"Loaded object type: {type(df)}")
-if isinstance(df, list):
-    print(f"List length: {len(df)}")
-    print(f"First element type: {type(df[0])}")
-    if isinstance(df[0], tuple):
-        print(f"Tuple content: {df[0]}")
-        df = df[0][0]  # Extract the DataFrame if it's nested in the tuple
-
-# Verify that df is a DataFrame
-if not isinstance(df, pd.DataFrame):
-    raise ValueError(f"The extracted object is not a DataFrame. It is of type {type(df)}.")
+# Debug: Inspect the loaded DataFrame
+print(f"Loaded DataFrame shape: {df.shape}")
+print(f"DataFrame columns: {df.columns}")
 
 # Prepare data
-X = df.iloc[:, 1:].values  # Landmark features
-y = df.iloc[:, 0].values   # Labels
+X = df.iloc[:, :-1].values  # All columns except the last one (features)
+y = df.iloc[:, -1].values   # The last column (labels)
 
 # Encode labels
 label_encoder = LabelEncoder()
