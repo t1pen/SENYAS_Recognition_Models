@@ -4,7 +4,6 @@ import mediapipe as mp
 import cv2
 import numpy as np
 import pandas as pd
-import random
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -15,6 +14,7 @@ DATA_DIR = './dataset_2'
 
 data = []
 labels = []
+sample_counts = {}  # Dictionary to track the number of samples per label
 
 # Iterate through dataset folders
 for label in os.listdir(DATA_DIR):
@@ -23,6 +23,7 @@ for label in os.listdir(DATA_DIR):
         continue
     
     print(f"Processing folder: {label}")  # Feedback for folder processing
+    sample_counts[label] = 0  # Initialize sample count for this label
     
     for img_name in os.listdir(label_path):
         img_path = os.path.join(label_path, img_name)
@@ -32,7 +33,7 @@ for label in os.listdir(DATA_DIR):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = hands.process(img_rgb)
         
-        data_aux = [0] * (21 * 2)  # Initialize with zeros for 21 landmarks (x, y)
+        data_aux = [0] * (21 * 3)  # Initialize with zeros for 21 landmarks (x, y, z)
         
         if results.multi_hand_landmarks:
             for idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
@@ -41,29 +42,42 @@ for label in os.listdir(DATA_DIR):
                 
                 x_ = []
                 y_ = []
+                z_ = []
                 
-                # Extract (x, y) coordinates
+                # Extract (x, y, z) coordinates
                 for i in range(len(hand_landmarks.landmark)):
                     x = hand_landmarks.landmark[i].x
                     y = hand_landmarks.landmark[i].y
+                    z = hand_landmarks.landmark[i].z
                     x_.append(x)
                     y_.append(y)
-                    data_aux[i * 2] = x  # Set x-coordinate
-                    data_aux[i * 2 + 1] = y  # Set y-coordinate
+                    z_.append(z)
+                    data_aux[i * 3] = x  # Set x-coordinate
+                    data_aux[i * 3 + 1] = y  # Set y-coordinate
+                    data_aux[i * 3 + 2] = z  # Set z-coordinate
                 
                 # Normalize coordinates (shift and scale based on min and max values)
                 min_x, max_x = min(x_), max(x_)
                 min_y, max_y = min(y_), max(y_)
+                min_z, max_z = min(z_), max(z_)
+                epsilon = 1e-6  # Small value to avoid division by zero
                 
                 for i in range(len(hand_landmarks.landmark)):
-                    data_aux[i * 2] = (data_aux[i * 2] - min_x) / (max_x - min_x) if max_x != min_x else 0
-                    data_aux[i * 2 + 1] = (data_aux[i * 2 + 1] - min_y) / (max_y - min_y) if max_y != min_y else 0
+                    data_aux[i * 3] = (data_aux[i * 3] - min_x) / (max_x - min_x + epsilon)
+                    data_aux[i * 3 + 1] = (data_aux[i * 3 + 1] - min_y) / (max_y - min_y + epsilon)
+                    data_aux[i * 3 + 2] = (data_aux[i * 3 + 2] - min_z) / (max_z - min_z + epsilon)
         
         # Add the feature vector and label
         data.append(data_aux)
         labels.append(int(label))  # Convert label to integer
+        sample_counts[label] += 1  # Increment sample count for this label
     
     print(f"Completed folder: {label}")  # Feedback for folder completion
+
+# Display the number of samples processed for each label
+print("\nSample counts per label:")
+for label, count in sample_counts.items():
+    print(f"Label {label}: {count} samples")
 
 # Convert to DataFrame
 df = pd.DataFrame(data)
@@ -73,4 +87,4 @@ df['label'] = labels
 with open('features_v2.pkl', 'wb') as f:
     pickle.dump(df, f)
 
-print("Feature extraction complete. Data saved as features_v2.pkl")
+print("\nFeature extraction complete. Data saved as features_v2.pkl")
