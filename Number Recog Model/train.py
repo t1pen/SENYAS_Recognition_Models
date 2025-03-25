@@ -29,12 +29,15 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 X_train = X_train / np.max(X_train)
 X_test = X_test / np.max(X_test)
 
-# Define CNN model
+# Define MLP model
 model = keras.Sequential([
     keras.layers.Input(shape=(X_train.shape[1],)),
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(64, activation='relu'),
-    keras.layers.Dense(10, activation='softmax')  # 10 classes (0-9)
+    keras.layers.Dense(256, activation='relu'),  # First hidden layer with 256 neurons
+    keras.layers.Dropout(0.3),  # Dropout for regularization
+    keras.layers.Dense(128, activation='relu'),  # Second hidden layer with 128 neurons
+    keras.layers.Dropout(0.3),  # Dropout for regularization
+    keras.layers.Dense(64, activation='relu'),  # Third hidden layer with 64 neurons
+    keras.layers.Dense(10, activation='softmax')  # Output layer for 10 classes (0-9)
 ])
 
 # Compile model

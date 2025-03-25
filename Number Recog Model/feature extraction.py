@@ -4,6 +4,7 @@ import mediapipe as mp
 import cv2
 import numpy as np
 import pandas as pd
+import random
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -31,9 +32,13 @@ for label in os.listdir(DATA_DIR):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = hands.process(img_rgb)
         
+        data_aux = [0] * (21 * 2)  # Initialize with zeros for 21 landmarks (x, y)
+        
         if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                data_aux = []
+            for idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
+                if idx > 0:  # Process only the first hand
+                    break
+                
                 x_ = []
                 y_ = []
                 
@@ -43,16 +48,20 @@ for label in os.listdir(DATA_DIR):
                     y = hand_landmarks.landmark[i].y
                     x_.append(x)
                     y_.append(y)
+                    data_aux[i * 2] = x  # Set x-coordinate
+                    data_aux[i * 2 + 1] = y  # Set y-coordinate
                 
-                # Normalize coordinates (shift based on min values)
+                # Normalize coordinates (shift and scale based on min and max values)
+                min_x, max_x = min(x_), max(x_)
+                min_y, max_y = min(y_), max(y_)
+                
                 for i in range(len(hand_landmarks.landmark)):
-                    x = hand_landmarks.landmark[i].x - min(x_)
-                    y = hand_landmarks.landmark[i].y - min(y_)
-                    data_aux.append(x)
-                    data_aux.append(y)
-                
-                data.append(data_aux)
-                labels.append(int(label))  # Convert label to integer
+                    data_aux[i * 2] = (data_aux[i * 2] - min_x) / (max_x - min_x) if max_x != min_x else 0
+                    data_aux[i * 2 + 1] = (data_aux[i * 2 + 1] - min_y) / (max_y - min_y) if max_y != min_y else 0
+        
+        # Add the feature vector and label
+        data.append(data_aux)
+        labels.append(int(label))  # Convert label to integer
     
     print(f"Completed folder: {label}")  # Feedback for folder completion
 
