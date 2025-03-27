@@ -1,64 +1,79 @@
 import cv2
-import mediapipe as mp
 import numpy as np
-import tensorflow.lite as tflite
+import mediapipe as mp
+from tensorflow.keras.models import load_model
 
+# Load the trained model
+model = load_model("action_recognition_model.h5")
+ACTIONS = ["hello", "thanks", "iloveyou", "sorry"]
+SEQUENCE_LENGTH = 20  # Same as used during training
 
-# Load TFLite model
-TFLITE_MODEL_PATH = "gesture_model.tflite"
-interpreter = tflite.Interpreter(model_path=TFLITE_MODEL_PATH)
-interpreter.allocate_tensors()
-
-# Get input and output details
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-# Initialize MediaPipe Hands
+# Initialize MediaPipe
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.5)
+mp_pose = mp.solutions.pose
 
-# Define gestures (make sure they match your training labels)
-GESTURES = ["hello", "i love you", "thanks"]  # Modify this based on your training data
+hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.5)
+pose = mp_pose.Pose(min_detection_confidence=0.5)
+
+# Indices for relevant pose landmarks
+POSE_LANDMARKS_RELEVANT = [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 15  # Nose, eyes, ears, left shoulder, elbow, wrist
+]
+
+# Initialize variables
+sequence = []  # Stores the sequence of frames
+predicted_action = ""  # Stores the predicted action
 
 # Start video capture
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+print("Press 'Q' to quit.")
 
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         continue
 
-    # Flip the frame for mirror effect
+    # Flip frame for mirror effect
     frame = cv2.flip(frame, 1)
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    result = hands.process(rgb_frame)
 
-    if result.multi_hand_landmarks:
-        for hand_landmarks in result.multi_hand_landmarks:
-            # Extract (x, y, z) coordinates
-            landmarks = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark]).flatten()
+    # Process frame with MediaPipe
+    hand_result = hands.process(rgb_frame)
+    pose_result = pose.process(rgb_frame)
 
-            # Reshape for TFLite model input
-            landmarks = np.expand_dims(landmarks, axis=0).astype(np.float32)
+    # Initialize keypoints with zero-filled placeholders
+    keypoints = np.zeros((12, 3))  # 12 landmarks, 3 coordinates (x, y, z)
 
-            # Run inference
-            interpreter.set_tensor(input_details[0]['index'], landmarks)
-            interpreter.invoke()
-            output_data = interpreter.get_tensor(output_details[0]['index'])
+    # Extract relevant pose landmarks
+    if pose_result.pose_landmarks:
+        keypoints[:len(POSE_LANDMARKS_RELEVANT)] = np.array([
+            (pose_result.pose_landmarks.landmark[i].x,
+             pose_result.pose_landmarks.landmark[i].y,
+             pose_result.pose_landmarks.landmark[i].z)
+            for i in POSE_LANDMARKS_RELEVANT
+        ])
 
-            # Get predicted gesture
-            gesture_index = np.argmax(output_data)
-            predicted_gesture = GESTURES[gesture_index]
-            confidence = output_data[0][gesture_index]
+    # Add the frame's keypoints to the sequence
+    sequence.append(keypoints.flatten())  # Flatten to match the training input shape
 
-            # Display the predicted gesture
-            cv2.putText(frame, f"Gesture: {predicted_gesture} ({confidence:.2f})", 
-                        (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    # Ensure the sequence length is consistent
+    if len(sequence) > SEQUENCE_LENGTH:
+        sequence.pop(0)
 
-    # Display video feed
-    cv2.imshow("Gesture Recognition", frame)
+    # Perform prediction if the sequence is full
+    if len(sequence) == SEQUENCE_LENGTH:
+        input_data = np.array(sequence).reshape(1, SEQUENCE_LENGTH, -1)  # Reshape for the model
+        prediction = model.predict(input_data)
+        predicted_action = ACTIONS[np.argmax(prediction)]
 
-    # Press 'q' to quit
+    # Display the predicted action
+    cv2.putText(frame, f"Action: {predicted_action}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    # Show the frame
+    cv2.imshow("Real-Time Action Recognition", frame)
+
+    # Exit on 'Q' key
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

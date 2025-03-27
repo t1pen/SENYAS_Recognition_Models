@@ -10,7 +10,7 @@ mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
 
 # Dataset directory (expects subfolders named 0-9 with images inside)
-DATA_DIR = './dataset_2'
+DATA_DIR = './dataset'
 
 data = []
 labels = []
@@ -40,32 +40,14 @@ for label in os.listdir(DATA_DIR):
                 if idx > 0:  # Process only the first hand
                     break
                 
-                x_ = []
-                y_ = []
-                z_ = []
-                
                 # Extract (x, y, z) coordinates
                 for i in range(len(hand_landmarks.landmark)):
                     x = hand_landmarks.landmark[i].x
                     y = hand_landmarks.landmark[i].y
                     z = hand_landmarks.landmark[i].z
-                    x_.append(x)
-                    y_.append(y)
-                    z_.append(z)
                     data_aux[i * 3] = x  # Set x-coordinate
                     data_aux[i * 3 + 1] = y  # Set y-coordinate
                     data_aux[i * 3 + 2] = z  # Set z-coordinate
-                
-                # Normalize coordinates (shift and scale based on min and max values)
-                min_x, max_x = min(x_), max(x_)
-                min_y, max_y = min(y_), max(y_)
-                min_z, max_z = min(z_), max(z_)
-                epsilon = 1e-6  # Small value to avoid division by zero
-                
-                for i in range(len(hand_landmarks.landmark)):
-                    data_aux[i * 3] = (data_aux[i * 3] - min_x) / (max_x - min_x + epsilon)
-                    data_aux[i * 3 + 1] = (data_aux[i * 3 + 1] - min_y) / (max_y - min_y + epsilon)
-                    data_aux[i * 3 + 2] = (data_aux[i * 3 + 2] - min_z) / (max_z - min_z + epsilon)
         
         # Add the feature vector and label
         data.append(data_aux)
@@ -84,7 +66,7 @@ df = pd.DataFrame(data)
 df['label'] = labels
 
 # Save extracted features as a DataFrame
-with open('features_v2.pkl', 'wb') as f:
+with open('features.pkl', 'wb') as f:
     pickle.dump(df, f)
 
-print("\nFeature extraction complete. Data saved as features_v2.pkl")
+print("\nFeature extraction complete. Data saved as features.pkl")

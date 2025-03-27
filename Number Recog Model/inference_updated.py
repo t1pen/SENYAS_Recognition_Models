@@ -7,7 +7,7 @@ from statistics import mode
 import time
 
 # Load the TFLite model
-interpreter = tflite.Interpreter(model_path="asl_number_classifier_v2.tflite")
+interpreter = tflite.Interpreter(model_path="asl_number_classifier.tflite")
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -42,37 +42,24 @@ while cap.isOpened():
     
     if result.multi_hand_landmarks:
         for hand_landmarks in result.multi_hand_landmarks:
-            # Detect closed fist based on landmarks
-            distances = []
-            for i in range(1, len(hand_landmarks.landmark)):
-                x1, y1 = hand_landmarks.landmark[0].x, hand_landmarks.landmark[0].y  # Wrist
-                x2, y2 = hand_landmarks.landmark[i].x, hand_landmarks.landmark[i].y
-                distances.append(np.sqrt((x2 - x1)**2 + (y2 - y1)**2))
-            
-            if all(d < 0.1 for d in distances):  # Adjust threshold as needed
-                cv2.putText(frame, "Closed Fist Detected", (10, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
-                continue  # Skip further processing for this frame
-            
-            # Normalize landmarks
-            x_coords = [lm.x for lm in hand_landmarks.landmark]
-            y_coords = [lm.y for lm in hand_landmarks.landmark]
-            z_coords = [lm.z for lm in hand_landmarks.landmark]
-            min_x, max_x = min(x_coords), max(x_coords)
-            min_y, max_y = min(y_coords), max(y_coords)
-            min_z, max_z = min(z_coords), max(z_coords)
-            epsilon = 1e-6  # Avoid division by zero
-
+            # Use raw landmarks
             landmarks = []
             for lm in hand_landmarks.landmark:
-                x = (lm.x - min_x) / (max_x - min_x + epsilon)
-                y = (lm.y - min_y) / (max_y - min_y + epsilon)
-                z = (lm.z - min_z) / (max_z - min_z + epsilon)
-                landmarks.extend([x, y, z])
+                landmarks.append([lm.x, lm.y, lm.z])  # Collect raw x, y, z coordinates
+            
+            # Convert landmarks to a NumPy array
+            landmarks = np.array(landmarks, dtype=np.float32)
+
+            # Normalize the landmarks (to range [0, 1])
+            min_vals = np.min(landmarks, axis=0)  # Minimum values for x, y, z
+            max_vals = np.max(landmarks, axis=0)  # Maximum values for x, y, z
+            landmarks = (landmarks - min_vals) / (max_vals - min_vals + 1e-6)  # Normalize
+
+            # Reshape to match the model's input shape
+            input_data = landmarks.reshape(1, 21, 3, 1)  # Shape: (1, 21, 3, 1)
             
             # Ensure the input data matches the expected shape
-            input_data = np.array(landmarks, dtype=np.float32).reshape(1, -1)
-            if input_data.shape[1] != input_details[0]['shape'][1]:
+            if input_data.shape[1:] != tuple(input_details[0]['shape'][1:]):
                 continue
             
             # Perform inference
@@ -86,9 +73,8 @@ while cap.isOpened():
             prediction_history.append(prediction)
             smoothed_prediction = mode(prediction_history)
 
-            # Display prediction
-            confidence_threshold = 0.99
-            if confidence >= confidence_threshold:
+            # Display prediction only if confidence is 1.00
+            if confidence >= 0.70:
                 cv2.putText(frame, f"Prediction: {labels[smoothed_prediction]} ({confidence:.2f})", (10, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
             else:
