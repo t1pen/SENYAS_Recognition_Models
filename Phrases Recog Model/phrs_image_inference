@@ -1,0 +1,73 @@
+import cv2
+import numpy as np
+import pickle
+import mediapipe as mp
+
+# Load the trained MLP model
+MODEL_PATH = 'mlp_model.pkl'
+with open(MODEL_PATH, 'rb') as model_file:
+    mlp = pickle.load(model_file)
+
+# Define the actions (gestures)
+actions = ['hello', 'thanks', 'iloveyou', 'sorry']
+
+# Initialize MediaPipe Hands
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+
+def extract_hand_landmarks(image, model):
+    """Extract hand landmarks from an image using MediaPipe."""
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
+    image.flags.writeable = False  # Make image non-writeable for efficiency
+    results = model.process(image)  # Process the image
+    image.flags.writeable = True  # Make image writeable again
+
+    # Extract landmarks for the first detected hand
+    if results.multi_hand_landmarks:
+        hand_landmarks = results.multi_hand_landmarks[0]
+        return np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark]).flatten()
+    else:
+        return np.zeros(21 * 3)  # Return zero-filled array if no hand is detected
+
+# Start video capture
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Flip the frame horizontally for a mirror effect
+        frame = cv2.flip(frame, 1)
+
+        # Extract hand landmarks
+        landmarks = extract_hand_landmarks(frame, hands)
+
+        # Predict the gesture if landmarks are detected
+        if np.any(landmarks):  # Check if landmarks are not all zeros
+            probabilities = mlp.predict_proba([landmarks])[0]  # Get probabilities for each class
+            prediction = np.argmax(probabilities)  # Get the class with the highest probability
+            confidence = probabilities[prediction]  # Get the confidence level
+            predicted_action = f"{actions[prediction]} ({confidence * 100:.2f}%)"
+        else:
+            predicted_action = "No hand detected"
+
+        # Draw landmarks on the frame
+        results = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+        # Display the predicted action and confidence level
+        cv2.putText(frame, f"Action: {predicted_action}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        # Show the frame
+        cv2.imshow('Real-Time Gesture Recognition', frame)
+
+        # Exit on 'Q' key
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+cap.release()
+cv2.destroyAllWindows()
