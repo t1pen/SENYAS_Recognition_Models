@@ -1,16 +1,12 @@
 import cv2
 import numpy as np
+import pickle
 import mediapipe as mp
-import tensorflow as tf
 
-# Load the TensorFlow Lite model
-TFLITE_MODEL_PATH = 'tensorflow_model.tflite'
-interpreter = tf.lite.Interpreter(model_path=TFLITE_MODEL_PATH)
-interpreter.allocate_tensors()
-
-# Get input and output details
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+# Load the trained MLP model
+MODEL_PATH = 'mlp_model.pkl'
+with open(MODEL_PATH, 'rb') as model_file:
+    mlp = pickle.load(model_file)
 
 # Define the actions (gestures)
 actions = ['hello', 'thanks', 'iloveyou', 'sorry']
@@ -50,19 +46,9 @@ with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) a
 
         # Predict the gesture if landmarks are detected
         if np.any(landmarks):  # Check if landmarks are not all zeros
-            # Preprocess the input for TensorFlow Lite
-            input_data = np.expand_dims(landmarks.astype(np.float32), axis=0)
-
-            # Set the input tensor
-            interpreter.set_tensor(input_details[0]['index'], input_data)
-
-            # Run inference
-            interpreter.invoke()
-
-            # Get the output tensor
-            output_data = interpreter.get_tensor(output_details[0]['index'])
-            prediction = np.argmax(output_data)  # Get the class with the highest probability
-            confidence = output_data[0][prediction]  # Get the confidence level
+            probabilities = mlp.predict_proba([landmarks])[0]  # Get probabilities for each class
+            prediction = np.argmax(probabilities)  # Get the class with the highest probability
+            confidence = probabilities[prediction]  # Get the confidence level
             predicted_action = f"{actions[prediction]} ({confidence * 100:.2f}%)"
         else:
             predicted_action = "No hand detected"
