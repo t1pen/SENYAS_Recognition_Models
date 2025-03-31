@@ -7,7 +7,7 @@ import os
 
 # Configuration
 CONFIG = {
-    'model_path': 'gesture_model_final.tflite',  # Changed to use final model
+    'model_path': 'gesture_model.tflite',  # Changed to use final model
     'actions': ['hello', 'thanks', 'iloveyou', 'sorry'],
     'sequence_length': 30,
     'threshold': 0.85,
@@ -143,7 +143,7 @@ class SignLanguageDetector:
 
 def main():
     detector = SignLanguageDetector(CONFIG)
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     prev_time = 0
