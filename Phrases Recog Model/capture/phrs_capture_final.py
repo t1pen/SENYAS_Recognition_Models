@@ -20,9 +20,9 @@ def extract_keypoints(results):
     rh = np.array([[res.x, res.y, res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
     return np.concatenate([pose, lh, rh])
 
-# Path for exported data, numpy arrays
+# Path for exported data, numpy array
 DATA_PATH = os.path.join('MP_Data')
-actions = np.array(['hello', 'thanks', 'iloveyou'])
+actions = np.array(['hello', 'thanks', 'iloveyou', 'sorry'])
 no_sequences = 30
 sequence_length = 30
 
@@ -34,7 +34,7 @@ for action in actions:
         except:
             pass
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 
 # Set up the MediaPipe Holistic model
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
